@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>File Explorer</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/vuetify@3.7.4/dist/vuetify.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/MaterialDesign-Webfont/7.4.47/css/materialdesignicons.min.css"
+    />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.7.4/dist/vuetify.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <v-app>
+        <v-navigation-drawer v-model="drawer">
+          <v-list>
+            <folder-item
+              :folders="folders"
+              :margin="0"
+              @folderselected="folderselected"
+            ></folder-item>
+          </v-list>
+        </v-navigation-drawer>
+        <v-main>
+          <v-container class="py-8 px-6" fluid>
+            <span v-if="selected_folder == null"> Select a folder </span>
+            <span v-else-if="selected_folder.subfolders.length==0&&selected_folder.files.length==0">
+              Empty folder
+            </span>
+            <v-row v-else>
+              <v-col
+                cols="3"
+                v-for="subfolder in selected_folder.subfolders"
+                :key="subfolder.id"
+              >
+                <v-card @click="folderselected(subfolder)">
+                  <v-card-title>
+                    <v-icon color="orange">mdi-folder</v-icon>
+                  </v-card-title>
+                  <v-card-text>{{ subfolder.name }}</v-card-text>
+                </v-card>
+              </v-col>
+              <v-col
+                cols="3"
+                v-for="file in selected_folder.files"
+                :key="file.id"
+              >
+                <v-card @click="">
+                  <v-card-title>
+                    <v-icon color="blue">mdi-file</v-icon>
+                  </v-card-title>
+                  <v-card-text>{{ file.name }}</v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-container>
+        </v-main>
+      </v-app>
+    </div>
+    <script>
+      const { createApp } = Vue;
+      const { createVuetify } = Vuetify;
+
+      const vuetify = createVuetify();
+
+      // Define the recursive component
+      const FolderItem = {
+        name: "FolderItem",
+        props: {
+          folders: Array,
+          margin: Number,
+        },
+        emits: ["folderselected"],
+        template: `
+          <div v-for="folder in folders" :key="folder.id">
+            <v-list-item
+              @click="$emit('folderselected', folder)"
+              :class="'ml-' + margin * 4"
+              prepend-icon="mdi-folder"
+            >
+              <v-list-item-title>{{ folder.name }}</v-list-item-title>
+            </v-list-item>
+            <folder-item
+              v-if="folder.subfolders.length > 0"
+              :folders="folder.subfolders"
+              :margin="margin + 1"
+              @folderselected="$emit('folderselected', $event)"
+            ></folder-item>
+          </div>
+        `,
+      };
+
+      // Create the Vue instance
+      const app = createApp({
+        components: {
+          FolderItem,
+        },
+        data: () => ({
+          drawer: null,
+          folders: [],
+          selected_folder: null,
+        }),
+        methods: {
+          folderselected(item) {
+            this.selected_folder = item;
+            console.log(item);
+          },
+          async allFolder() {
+            const response = await axios.get("/folder/all");
+            this.folders = response.data;
+          },
+          checkSubfolder() {
+            // Replace this with your actual logic to check if the subfolder exists
+            // For example, you might make an API call or check a local directory
+            this.subfolderExists = true; // Set this based on your check
+          },
+        },
+        mounted() {
+          this.allFolder();
+          this.checkSubfolder();
+        },
+      });
+
+      // Use Vuetify and mount the app
+      app.use(vuetify).mount("#app");
+    </script>
+  </body>
+</html>
